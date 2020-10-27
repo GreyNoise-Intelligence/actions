@@ -1,0 +1,22 @@
+name: "Athena View Generator"
+description: "Github action to create views in Athena"
+author: "GreyNoise Intelligence, Inc."
+inputs:
+  path:
+    description: "Path of Athena SQL files"
+    required: true
+  database:
+    description: "AWS Athena database"
+    required: true
+  region:
+    description: "AWS region for Athena session"
+    required: false
+  workgroup:
+    description: "AWS Athena workgroup"
+    required: false
+outputs:
+  result:
+    description: "CLI output"
+runs:
+  using: "docker"
+  image: "Dockerfile"
