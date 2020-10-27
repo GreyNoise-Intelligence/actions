@@ -1,3 +1,5 @@
 app
 go.mod
 go.sum
+*linux-amd64
+*darwin-amd64
