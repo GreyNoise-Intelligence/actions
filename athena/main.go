@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	a "github.com/aws/aws-sdk-go/service/athena"
 	"github.com/sirupsen/logrus"
@@ -87,7 +88,34 @@ var mainCmd = &cobra.Command{
 					log.Errorf("  > got error during execution: %v", err)
 				} else {
 					log.Infof("  > query execution ID: %v", aws.StringValue(result.QueryExecutionId))
+					timeout := time.After(5 * time.Second)
+					ticker := time.Tick(1 * time.Second)
+					for {
+						select {
+						case <-ticker:
+							output, err := svc.GetQueryExecution(&a.GetQueryExecutionInput{QueryExecutionId: result.QueryExecutionId})
+							if err != nil {
+								errs++
+								log.Errorf("  > got error getting execution: %v", err)
+								goto exitLoop
+							}
+
+							state := aws.StringValue(output.QueryExecution.Status.State)
+							if state == "FAILED" {
+								log.Errorf("Failed to execute query in %v: \n\t%v", filepath.Base(fl),
+									aws.StringValue(output.QueryExecution.Status.StateChangeReason))
+								errs++
+								goto exitLoop
+							} else if state == "SUCCEEDED" {
+								goto exitLoop
+							}
+						case <-timeout:
+							log.Infof("Timed-out waiting to get query result")
+							goto exitLoop
+						}
+					}
 				}
+			exitLoop:
 			}
 		}
 
